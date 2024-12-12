@@ -2,10 +2,11 @@
 const width = 800;
 const height = 600;
 
+
 // Create the SVG canvas
-//d3.select("body")
-//  .append("h1")
-//  .text("Ham Sandwich Cut Visualization");
+d3.select("body")
+  .append("h1")
+  .text("Ham Sandwich Cut Visualization");
 
 const svg = d3.select("body")
   .append("svg")
@@ -13,6 +14,11 @@ const svg = d3.select("body")
   .attr("height", height)
   .style("border", "1px solid black");
 
+const text_box = d3.select("body").append("h3").text(
+  "This project runs through a simulation of Lo, Matoušek, and Steiger's Algorithm for finding the Ham Sandwich Cut in Linear Time. The Ham Sandwhich Cut is a singular line that bisects two separate sets of points. It has been shown that in 2 dimensions, under general conditions, it is always possible to construct a Ham Sandwich Line to bisect 2 classes. The Lo, Matoušek, and Steiger's Algorithm runs in Linear Time. The original paper can be found here https://link.springer.com/article/10.1007/BF02574017. The following two links are other resources that summarize the idea of the algorithm without going into too much detail. https://linux.ime.usp.br/~kobus/mac0499/monografia.pdf https://cgm.cs.mcgill.ca/~athens/cs507/Projects/2002/DanielleMacNevin/algorithm-pg1.html. \n Click on the square to start. Click to move forward in the algorithm.");
+
+let originalBluePoints = [];
+let originalRedPoints = [];
 let bluePoints = [];
 let redPoints = [];
 let currentColor = "blue";
@@ -23,6 +29,10 @@ let temp_node = null;
 let temp_line = null;
 let intersections = null;
 let sections = null;
+let left_section = [];
+let right_section = [];
+let x_0, y_0, x_1, y_1, x_2, y_2, x_3, y_3;
+let team_color;
 
 const scaleX = d3.scaleLinear().domain([0, width]).range([0, width]);
 const scaleY = d3.scaleLinear().domain([0, height]).range([height, 0]);
@@ -33,13 +43,15 @@ svg.on("click", function (event) {
 
 
   if (stage == 0 && currentColor === "blue" && bluePoints.length < 10) {
+    text_box.text("Place 10 blue dots. This will make up one class that will be bisected by the ham sandwich cut line.");
+
     bluePoints.push({ x, y, color: "blue" });
     drawPoint(x, y, "blue");
     pointCount++;
     if (bluePoints.length === 10) {
         currentColor = "red";
         pointCount = 0;
-        alert("Switching to red points. Place 10 red points.");
+        //alert("Switching to red points. Place 10 red points.");
         for (let i = 0; i < bluePoints.length; i++) {
             console.log("Blue Point X: " + bluePoints[i].x + " Y: " + bluePoints[i].y);
         }
@@ -47,6 +59,7 @@ svg.on("click", function (event) {
     }
   } 
   else if (stage == 1 && currentColor === "red" && redPoints.length < 10) {
+    text_box.text("Place 10 red dots. This will make up the other class that will be bisected by the ham sandwich cut line.");
     redPoints.push({ x, y, color: "red" });
     drawPoint(x, y, "red");
     pointCount++;
@@ -54,50 +67,154 @@ svg.on("click", function (event) {
         for (let i = 0; i < redPoints.length; i++) {
             console.log("Red Point X: " + redPoints[i].x + " Y: " + redPoints[i].y);
         }
-      alert("All points placed. Computing Ham Sandwich Cut.");
+      //alert("All points placed. Computing Ham Sandwich Cut.");
       stage = 2;
     }
   } 
   else if (stage == 2) {
+    text_box.text("Now that both classes are made, we will iterate through the algorithm. This algorithm uses the concept of the dual. Namely, instead of observing the objects as points with an x and y coordinate, it transforms the point into a line, with x becoming the slope and y becoming the intercept. The green dot is an example of a point in the primary space. Its dual is the green line. The x coordinate is turned into the slope and the y coordinate is the intercept. It is important to note that in this visualization, the dual space is transformed for easier visualizations. This transformation will not change the relevant features of the space. Additionally, the primary and dual spaces are different, and are just being overlayed in this visualization.");
+    originalBluePoints = bluePoints.slice(0);
+    originalRedPoints = redPoints.slice(0);
     temp_node, temp_line = computeAndDrawDualExample();
     stage = 3;
   }
   else if (stage == 3) {
+    text_box.text("Here you can see all the points turned into their respective dual representation. Since these are lines, they go on past the canvas, and as such, some interactions will not be captured in the diagram. There are important correlations between the primary and the dual datapoints. For example, collinear points in the primary will always intersect at the same point in the dual. In our example, the dual representation of the ham sandwich cut line is a point that has half of each classes lines above it, and half of those lines below it.");
     computeAndDrawDual();
     stage = 4;
   }
   else if (stage == 4) {
+    text_box.text("This is a visualization of all the intersections between the dual lines.");
     intersections = computeIntersections();
     stage = 5;
+
   }
   else if (stage == 5) {
+    text_box.text("In this step, we break down the space into segments, where each segment contains N/20 intersections, where N is the total number of intersections. The full algorithm is not as precise in order to maintain the linear runtime, but it guarentees an upper bound to the number of intersections.");
     sections = computeSegments(intersections);
     stage = 6;
   }
   else if (stage == 6) {
     result = getOddIntersectionSegment(sections, sections_tried);
+    text_box.text("Now that we have the segments, we will find a segment that meets the requirements for our algorithm. In this case, we are looking for a segment that demonstrates the odd intersection property. Within each segment, there is a collection of segments from the left to the right that make up the median segment for either the blue or the red class. By the intersection property, there must exist a segment in which the collection of median segments for the blue class crosses the collection of median segments for the red class an odd number of times. We iterate through to find one of these segments. This might happen off screen due to our canvas.");
     if (result == "failed") {
       sections_tried++;
     }
     else {
+      sections_tried = 0;
+      [left, right] = result;
       stage = 7;
     }
   }
   else if (stage == 7) {
-    computeAndDrawTrapezoid();
+    [x_0, y_0, x_1, y_1, x_2, y_2, x_3, y_3, team_color] = computeAndDrawTrapezoid(left, right, intersections);
+    console.log([x_0, y_0, x_1, y_1, x_2, y_2, x_3, y_3, team_color]);
     stage = 8;
   }
   else if (stage == 8) {
-    computeAndRemoveEdges();
-    stage = 9;
+    computeAndRemoveEdges([x_0, y_0, x_1, y_1, x_2, y_2, x_3, y_3, team_color]);
+    if (bluePoints.length < 6 && redPoints.length < 6) {
+      stage = 9;
+    }
+    else {
+      stage = 4;
+    }
   }
-  else if (stage == 7) {
-    const line = computeHamSandwichCut(redPoints, bluePoints);
-    console.log("slope: " + line.slope + ", intercept: " + line.intercept);
-    drawPoint(line.slope, line.intercept);
-    stage = 8;
+  else if (stage == 9) {
+    computeAndDrawCut()
+
+    const line = computeHamSandwichCut(originalRedPoints, originalBluePoints);
+    stage = 10;
   }
 });
+
+const computeAndRemoveEdges = ([x_0, y_0, x_1, y_1, x_2, y_2, x_3, y_3, team_color]) => {
+
+  
+  drawPointScaled(x_0, y_0, "purple");
+  drawPointScaled(x_1, y_1, "purple");
+  drawPointScaled(x_2, y_2, "purple");
+  drawPointScaled(x_3, y_3, "purple");
+
+  let points = bluePoints;
+  if (team_color == "red") {
+    points = redPoints;
+  }
+  
+  new_points = []
+  for (let a of points) {
+    if (intersects(a, {x:x_0, y:y_0}, {x:x_2, y:y_2}) || intersects(a, {x:x_1, y:y_1}, {x:x_3, y:y_3})){
+      new_points.push(a);
+      console.log(a);
+    }
+  }
+
+  if (team_color == "blue") {
+    bluePoints = new_points;
+  } else {
+    redPoints = new_points;
+  }
+
+  svg.selectAll("*").remove();
+
+  originalBluePoints.forEach(point => drawPoint(point.x, point.y, "blue"));
+  originalRedPoints.forEach(point => drawPoint(point.x, point.y, "red"));
+
+  bluePoints.forEach(point => {
+    const slope = point.x; // Dual slope is scaled x-coordinate
+    const intercept = point.y; // Dual intercept is -scaled y-coordinate
+    [x1, y1, x2, y2] = getLinesFromPoints(slope, intercept);
+    console.log("Dual line m = " + slope + ", b = " + y1);
+    drawLine(x1, y1, x2, y2, "rgba(0, 0, 255, 0.4)");
+  });
+
+  redPoints.forEach(point => {
+      const slope = point.x; // Dual slope is scaled x-coordinate
+      const intercept = point.y; // Dual intercept is -scaled y-coordinate
+      [x1, y1, x2, y2] = getLinesFromPoints(slope, intercept);
+      console.log("Dual line m = " + slope + ", b = " + y1);
+      drawLine(x1, y1, x2, y2, "rgba(255, 0, 0, 0.2)");
+    });
+}
+
+function intersects(a, b, c) {
+
+  const slope = a.x; 
+  const intercept = a.y; 
+
+  const segmentSlope = (c.y - b.y) / (c.x - b.x);
+  const segmentIntercept = b.y - segmentSlope * b.x;
+
+  const intersectionX = (segmentIntercept - intercept) / (slope - segmentSlope); 
+  const intersectionY = slope * intersectionX + intercept; 
+
+  // Check if the intersection point lies within the bounds of the segment
+  return (
+    intersectionX >= Math.min(b.x, c.x) &&
+    intersectionX <= Math.max(b.x, c.x) &&
+    intersectionY >= Math.min(b.y, c.y) &&
+    intersectionY <= Math.max(b.y, c.y)
+  );
+}
+
+const computeAndDrawTrapezoid = (left, right, intersections) => {
+  let points = bluePoints;
+  let team_color = "blue";
+  if (bluePoints.length < redPoints.length) {
+    points = redPoints;
+    team_color = "red";
+  }
+
+  const pyleft = getMedianLevel(points, left);
+  const pyright = getMedianLevel(points, right);
+
+  const [left_up, left_down] = getAroundMedianLevel(points, left);
+  const [right_up, right_down] = getAroundMedianLevel(points, right);
+  drawLine(left, left_up, right, right_up, "green", 2);
+  drawLine(left, left_down, right, right_down, "green", 2);
+
+  return [left, left_up, right, right_up, right, right_down, left, left_down, team_color];
+}
 
 const getMedianLevel = (lines, xValue) => {
   // Compute the intersection points at x = xValue
@@ -116,19 +233,42 @@ const getMedianLevel = (lines, xValue) => {
   const n = intersections.length;
   if (n === 0) return null; // No lines, no median
 
-  const median =
-    n % 2 === 1
-      ? intersections[Math.floor(n / 2)] // Odd: middle value
-      : (intersections[n / 2 - 1] + intersections[n / 2]) / 2; // Even: average of middle two
+  // Paper just removes a line, feels like thats riskier than this though.
+  const median = intersections[Math.floor(n / 2)];
+
 
   return median;
 };
 
+const getAroundMedianLevel = (lines, xValue) => {
+  // Compute the intersection points at x = xValue
+  const intersections = lines.map(line => {
+    //const { slope, intercept } = line; // Line equation: y = mx + b
+    slope = line.x;
+    intercept = line.y;
+    const y = slope * xValue + intercept; // Intersection at x = xValue
+    return y;
+  });
+
+  // Sort the y-values
+  intersections.sort((a, b) => a - b);
+
+  // Find the median
+  const n = intersections.length;
+  if (n === 0) return null; // No lines, no median
+
+  // Paper just removes a line, feels like thats riskier than this though.
+  const median = intersections[Math.floor(n / 2)];
+
+
+  return [intersections[Math.floor(n / 2) - 2], intersections[Math.floor(n / 2) + 2]];
+};
+
 const getOddIntersectionSegment = (sections, sections_tried) => {
   // Just so it is visible on screen.
-  const index = Math.floor(sections.length / 2);
-  const left = sections[index + sections_tried];
-  const right = sections[index + sections_tried + 1];
+  left = sections[sections.length - 2 - sections_tried];
+  right = sections[sections.length - 2 - sections_tried + 1];
+
 
   console.log("left: " + left);
   console.log("right: " + right);
@@ -146,16 +286,19 @@ const getOddIntersectionSegment = (sections, sections_tried) => {
   drawPointScaled(right, ry2, "clear", "red");
 
   if (by1 > ry1 && by2 > ry2) {
-    drawVerticalLineScaled(left, 'red', 2);
+    drawVerticalLineScaled(right, 'red', 2);
     return "failed";
   }
 
   if (by1 < ry1 && by2 < ry2) {
-    drawVerticalLineScaled(left, 'red', 2);
+    drawVerticalLineScaled(right, 'red', 2);
     return "failed";
   }
 
-  return "passed";
+  console.log("blue---" + " leftx: " + left + " lefty: " + by1 + " rightx: " + right + " righty: " + by2);
+  console.log("red---" + " leftx: " + left + " lefty: " + ry1 + " rightx: " + right + " righty: " + ry2);
+
+  return [left, right];
 }
 
 const computeSegments = (intersections) => {
@@ -230,7 +373,7 @@ const drawPointScaled = (x, y, fill_color = "none", stroke_color = "none") => {
 };
 
   // Draw a single point on the canvas
-const drawLine = (x1, y1, x2, y2, color) => {
+const drawLine = (x1, y1, x2, y2, color, width = 1) => {
     // Draw the dual line as a shaded line
     svg.append("line")
       .attr("x1", 300 * x1 + 200)
@@ -238,7 +381,7 @@ const drawLine = (x1, y1, x2, y2, color) => {
       .attr("x2", 300 * x2 + 200)
       .attr("y2", y2 - 200)
       .attr("stroke", color)
-      .attr("stroke-width", 1);
+      .attr("stroke-width", width);
 };
 
 const drawVerticalLineScaled = (x, color, width) => {
@@ -363,92 +506,3 @@ const computeAndDrawDual = () => {
         drawLine(x1, y1, x2, y2, "rgba(255, 0, 0, 0.2)");
       });
   };
-
-
-const hamSandwichPoint = (blueLines, redLines) => {
-  const alpha = 1/32;
-  
-    if (blueLines.length % 2 == 0) {
-        blueLines.remove(0);
-    }
-    if (redLines.length % 2 == 0) {
-        redLines.remove(0);
-    }
-
-    let moreLines = redLines;
-    let fewerLines = blueLines;
-    if (blueLines.length > redLines.length) {
-        moreLines = blueLines;
-        fewerLines = redLines;
-    }
-
-    let p1 = Math.ceil(moreLines.length / 2);
-    let p2 = Math.ceil(fewerLines.length / 2);
-
-    let T = (-Infinity, Infinity);
-
-    while((moreLines.length * moreLines.length - 1) / 2 > (1 / alpha)) {
-        T = NewInterval(moreLines, fewerLines, p1, p2, T);
-        const t = FindTrapezoid(G1, p1, T);
-        if (moreLines.length < fewerLines.length) {
-            const temp = moreLines;
-            moreLines = fewerLines;
-            fewerLines = temp;
-        }
-    }
-
-    return BruteForce(moreLines, fewerLines, p1, p2, T);
-};
-
-
-const NewInterval = (moreLines, fewerLines, p1, p2, T) => {
-    const alpha = 1/32;
-    [n, p] = IntersectionsAndRandomIntersection(moreLines, T);
-
-    // This returns an INterval T' in T that has the odd intersection property in relation to
-    // Lp1(G1) and Lp2(G2) and also the number of T' intersections among lines in G1 is no more
-    // that alpha G1 choose 2.
-    while (n > alpha(moreLines.length * (moreLines.length - 1) / 2)) {
-        [a, b] = T
-        let T1 = (a, p.x);
-        let T2 = (p.x, b);
-
-        if (OddIntersectionProperty(moreLines, fewerLines, p1, p2, T1)) {
-            T = T1;
-        } else {
-            T = T2;
-        }
-
-        [n, p] = IntersectionsAndRandomIntersection(moreLines, T);
-    }
-    return T;
-}
-
-const IntersectionsAndRandomIntersection = (G, T) => {
-    [a, b] = T;
-    SortEval(G, a);
-    pi = IndSortEval(G, b);
-    [c, u, v] = InversionsAndRandomInversion(pi, 1, Math.abs(pi));
-    if (c == 0) {
-        return (c, null, null);
-    }
-    inter = Intersection(G[u], G[v]);
-    return (c, inter);
-}
-
-const InversionsAndRandomInversion = (pi, i, j) => {
-    if (i >= j) {
-        return (0, null, null);
-    }
-
-    let k = Math.floor((i + j) / 2.0);
-
-    [c1, u1, v1] = InversionsAndRandomInversion(pi, i, k);
-    [c2, u2, v2] = InversionsAndRandomInversion(pi, k + 1, j);
-    let c3 = 0;
-    let t1 = i;
-    let t2 = k + 1;
-
-    //for (let t of range(i, k + 1))
-
-}
