@@ -37,18 +37,21 @@ let team_color;
 const scaleX = d3.scaleLinear().domain([0, width]).range([0, width]);
 const scaleY = d3.scaleLinear().domain([0, height]).range([height, 0]);
 
+const numBluePoints = 20;
+const numRedPoints = 20;
+
 // Event listener for placing points
 svg.on("click", function (event) {
   const [x, y] = d3.pointer(event);
 
 
-  if (stage == 0 && currentColor === "blue" && bluePoints.length < 10) {
+  if (stage == 0 && currentColor === "blue" && bluePoints.length < numBluePoints) {
     text_box.text("Place 10 blue dots. This will make up one class that will be bisected by the ham sandwich cut line.");
 
     bluePoints.push({ x, y, color: "blue" });
     drawPoint(x, y, "blue");
     pointCount++;
-    if (bluePoints.length === 10) {
+    if (bluePoints.length === numBluePoints) {
         currentColor = "red";
         pointCount = 0;
         //alert("Switching to red points. Place 10 red points.");
@@ -58,12 +61,12 @@ svg.on("click", function (event) {
        stage = 1;
     }
   } 
-  else if (stage == 1 && currentColor === "red" && redPoints.length < 10) {
+  else if (stage == 1 && currentColor === "red" && redPoints.length < numRedPoints) {
     text_box.text("Place 10 red dots. This will make up the other class that will be bisected by the ham sandwich cut line.");
     redPoints.push({ x, y, color: "red" });
     drawPoint(x, y, "red");
     pointCount++;
-    if (redPoints.length === 10) {
+    if (redPoints.length === numRedPoints) {
         for (let i = 0; i < redPoints.length; i++) {
             console.log("Red Point X: " + redPoints[i].x + " Y: " + redPoints[i].y);
         }
@@ -98,20 +101,24 @@ svg.on("click", function (event) {
     result = getOddIntersectionSegment(sections, sections_tried);
     text_box.text("Now that we have the segments, we will find a segment that meets the requirements for our algorithm. In this case, we are looking for a segment that demonstrates the odd intersection property. Within each segment, there is a collection of segments from the left to the right that make up the median segment for either the blue or the red class. By the intersection property, there must exist a segment in which the collection of median segments for the blue class crosses the collection of median segments for the red class an odd number of times. We iterate through to find one of these segments. This might happen off screen due to our canvas.");
     if (result == "failed") {
+      text_box.text("This segment tried failed to meet this property. Keep clicking until the algorithm finds a valid one. The invalid lines are displayed between the red vertical partitions. A valid parition will be shown with green vertical lines. Note: This might happen off screen.");
       sections_tried++;
     }
     else {
+      text_box.text("A valid segment has been found. This segment is shown by the 2 green vertical lines. Note: This might happen off screen.");
       sections_tried = 0;
       [left, right] = result;
       stage = 7;
     }
   }
   else if (stage == 7) {
+    text_box.text("The crux of the algorithm occurs at these steps. 1st. We find which class has the most lines. Arbitrarily consider it to be blue. Then we make a quadrilateral with the crucial property of fully containing the median level for the blue lines within our segment. The median level consists of the median point of the class in question for all x values in our section. This quadrilateral is shown with the 4 green lines.");
     [x_0, y_0, x_1, y_1, x_2, y_2, x_3, y_3, team_color] = computeAndDrawTrapezoid(left, right, intersections);
     console.log([x_0, y_0, x_1, y_1, x_2, y_2, x_3, y_3, team_color]);
     stage = 8;
   }
   else if (stage == 8) {
+    text_box.text("After constructing the quadrilateral, we remove all of the lines in the class we are looking at that DO NOT intersect this quadrilateral. After doing this, we lower the number of lines we are looing at by atleast a constant fraction, which is what makes this algorithm O(n). After this, we repeat the steps until we have fewer than a set number of lines for each class, and then brute force the search.");
     computeAndRemoveEdges([x_0, y_0, x_1, y_1, x_2, y_2, x_3, y_3, team_color]);
     if (bluePoints.length < 6 && redPoints.length < 6) {
       stage = 9;
@@ -121,6 +128,8 @@ svg.on("click", function (event) {
     }
   }
   else if (stage == 9) {
+    text_box.text("After reducing the search space of points, we got to few enough points that we brute forced the search for the ham sandwich point and, flipped it back to the primary dimension, and can see that it properly bisects the 2 classes.");
+
     computeAndDrawCut()
 
     const line = computeHamSandwichCut(originalRedPoints, originalBluePoints);
