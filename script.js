@@ -37,8 +37,8 @@ let team_color;
 const scaleX = d3.scaleLinear().domain([0, width]).range([0, width]);
 const scaleY = d3.scaleLinear().domain([0, height]).range([height, 0]);
 
-const numBluePoints = 20;
-const numRedPoints = 20;
+const numBluePoints = 10;
+const numRedPoints = 10;
 
 // Event listener for placing points
 svg.on("click", function (event) {
@@ -46,7 +46,7 @@ svg.on("click", function (event) {
 
 
   if (stage == 0 && currentColor === "blue" && bluePoints.length < numBluePoints) {
-    text_box.text("Place 10 blue dots. This will make up one class that will be bisected by the ham sandwich cut line.");
+    text_box.text("Place " + numBluePoints + " blue dots. This will make up one class that will be bisected by the ham sandwich cut line.");
 
     bluePoints.push({ x, y, color: "blue" });
     drawPoint(x, y, "blue");
@@ -62,7 +62,7 @@ svg.on("click", function (event) {
     }
   } 
   else if (stage == 1 && currentColor === "red" && redPoints.length < numRedPoints) {
-    text_box.text("Place 10 red dots. This will make up the other class that will be bisected by the ham sandwich cut line.");
+    text_box.text("Place " + numBluePoints + " red dots. This will make up the other class that will be bisected by the ham sandwich cut line.");
     redPoints.push({ x, y, color: "red" });
     drawPoint(x, y, "red");
     pointCount++;
