@@ -120,7 +120,7 @@ svg.on("click", function (event) {
   else if (stage == 8) {
     text_box.text("After constructing the quadrilateral, we remove all of the lines in the class we are looking at that DO NOT intersect this quadrilateral. After doing this, we lower the number of lines we are looing at by atleast a constant fraction, which is what makes this algorithm O(n). After this, we repeat the steps until we have fewer than a set number of lines for each class, and then brute force the search.");
     computeAndRemoveEdges([x_0, y_0, x_1, y_1, x_2, y_2, x_3, y_3, team_color]);
-    if (bluePoints.length < 6 && redPoints.length < 6) {
+    if (bluePoints.length < 7 && redPoints.length < 7) {
       stage = 9;
     }
     else {
@@ -132,7 +132,7 @@ svg.on("click", function (event) {
 
     computeAndDrawCut()
 
-    const line = computeHamSandwichCut(originalRedPoints, originalBluePoints);
+    // const line = computeHamSandwichCut(originalRedPoints, originalBluePoints);
     stage = 10;
   }
 });
@@ -435,7 +435,7 @@ const computeHamSandwichCut = (red, blue) => {
 };
 
 const computeAndDrawCut = () => {
-  const line = computeHamSandwichCut(redPoints, bluePoints);
+  const line = computeHamSandwichCut(originalRedPoints, originalBluePoints);
 
   // Draw the ham sandwich cut line
   svg.append("line")
